@@ -13,6 +13,7 @@ def main(argv):
         sys.exit(2)
 
     project = Project(argv[0])
-    bundler = Bundler(project)
-
+    factory = BundlerFactory()
+    bundler = factory.get(project)
+    
     bundler.run()

@@ -512,6 +512,8 @@ if __name__ == '__main__':
         sys.exit(2)
 
     project = Project(sys.argv[1])
-    bundler = Bundler(project)
+    factory = BundlerFactory()
+    bundler = factory.get(project)
+    
 
     bundler.run()
