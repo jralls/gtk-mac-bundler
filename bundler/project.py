@@ -342,6 +342,9 @@ class Project:
         for node in nodes:
             data.append(Data.from_node(node))
         return data
+
+    def get_bundle_type(self):
+        return self.__bundle_type
             
 if __name__ == '__main__':
     project = Project(os.path.join(os.getcwd(), 'giggle.bundle'))
