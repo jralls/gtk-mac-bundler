@@ -191,6 +191,12 @@ class Project:
                 doc = xml.dom.minidom.parse(project_path)
                 # Get the first app-bundle tag and ignore any others.
                 self.root = utils.node_get_element_by_tag_name(doc, "app-bundle")
+                if self.root:
+                    self.__bundle_type = "app"
+                else:
+                    self.root = utils.node_get_element_by_tag_name(doc, "fw-bundle")
+                if self.root:
+                    self.__bundle_type = "fw"
             except:
                 print "Could not load project %s:" % (project_path)
                 raise
