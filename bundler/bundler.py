@@ -485,6 +485,23 @@ class Bundler:
             self.recursive_rm(final_path)
         shutil.move(self.project.get_bundle_path(), final_path)
 
+class App_Bundler(Bundler):
+    pass
+
+class FW_Bundler(Bundler):
+    pass
+
+class BundlerFactory:
+    def get(self, project):
+        bundle_type = project.get_bundle_type()
+        if bundle_type == "app":
+            return App_Bundler(project)
+        elif bundle_type == "fw":
+            return FW_Bundler(project)
+        else:
+            raise NameError('Invalid Bundle Type')
+
+
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print "Usage: %s <bundle descriptopn file>" % (sys.argv[0])
