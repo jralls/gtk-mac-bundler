@@ -10,7 +10,7 @@ else
     EXEC=exec
 fi
 
-name="`basename $0`"
+name="`basename "$0"`"
 tmp="`pwd`/$0"
 tmp=`dirname "$tmp"`
 tmp=`dirname "$tmp"`
