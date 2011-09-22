@@ -160,8 +160,8 @@ if test -f "$bundle_res/environment.sh"; then
 fi
 
 # Strip out the argument added by the OS.
-if [ x`echo "x$1" | sed -e "s/^x-psn_.*//"` == x ]; then
+if /bin/expr "x$1" : '^x-psn_' > /dev/null; then
     shift 1
 fi
 
-$EXEC "$bundle_contents/MacOS/$name-bin" $* $EXTRA_ARGS
+$EXEC "$bundle_contents/MacOS/$name-bin" "$@" $EXTRA_ARGS
