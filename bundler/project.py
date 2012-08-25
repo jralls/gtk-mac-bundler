@@ -239,6 +239,10 @@ class Project:
             else:
                 raise
         self.name = plist.CFBundleExecutable
+        if plist.has_key("CFBundleName"):
+            self.bundle_name = plist.CFBundleName
+        else:
+            self.bundle_name = plist.CFBundleExecutable
  
     """
      Replace ${env:?}, ${prefix}, ${prefix:?}, ${project}, ${gtk}, ${gtkdir},
@@ -285,6 +289,9 @@ class Project:
 
     def get_name(self):
         return self.name
+
+    def get_bundle_name(self):
+        return self.bundle_name
 
     def get_prefix(self, name="default"):
         meta = self.get_meta()

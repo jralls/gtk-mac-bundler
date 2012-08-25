@@ -27,7 +27,7 @@ class Bundler:
         # Create the bundle in a temporary location first and move it
         # to the final destination when done.
         self.meta = project.get_meta()
-        self.bundle_path = os.path.join(self.meta.dest, "." + project.get_name() + ".app")
+        self.bundle_path = os.path.join(self.meta.dest, "." + project.get_bundle_name() + ".app")
 
     def recursive_rm(self, dirname):
         # Extra safety ;)
@@ -541,7 +541,7 @@ class Bundler:
         path = self.project.evaluate_path(self.bundle_path)
         self.recursive_rm(path)
 
-        final_path = os.path.join(self.meta.dest, self.project.get_name() + ".app")
+        final_path = os.path.join(self.meta.dest, self.project.get_bundle_name() + ".app")
         final_path = self.project.evaluate_path(final_path)
 
         if not self.meta.overwrite and os.path.exists(final_path):
