@@ -381,19 +381,20 @@ class Project:
 
     def get_main_binary(self):
         node = utils.node_get_element_by_tag_name(self.root, "main-binary")
-        if not node:
-            raise Exception("The file has no <main-binary> tag")
+        if node:
+        #    raise Exception("The file has no <main-binary> tag")
 
-        binary = Binary.from_node(node)
+            binary = Binary.from_node(node)
 
-        launcher = self.get_launcher_script()
-        if launcher:
-            suffix = "-bin"
-        else:
-            suffix = ""
-        binary.dest = "${bundle}/Contents/MacOS/${name}" + suffix
+            launcher = self.get_launcher_script()
+            if launcher:
+                suffix = "-bin"
+            else:
+                suffix = ""
+            binary.dest = "${bundle}/Contents/MacOS/${name}" + suffix
 
-        return binary
+            return binary
+        return None
 
     def get_binaries(self):
         binaries = []

@@ -579,13 +579,14 @@ class Bundler:
 
         # Main binary
         path = self.project.get_main_binary()
-        source = self.project.evaluate_path(path.source)
-        if not os.path.exists(source):
-            print "Cannot find main binary: " + source
-            sys.exit(1)
+        if path:
+            source = self.project.evaluate_path(path.source)
+            if not os.path.exists(source):
+                print "Cannot find main binary: " + source
+                sys.exit(1)
 
-        dest = self.copy_path(path)
-        self.binary_paths.append(dest)
+            dest = self.copy_path(path)
+            self.binary_paths.append(dest)
 
         # Additional binaries (executables, libraries, modules)
         self.copy_binaries(self.project.get_binaries())
