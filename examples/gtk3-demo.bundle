@@ -67,7 +67,7 @@
        the included ${gtk} macro, which gets the correct package name
        to get. -->
   <binary>
-    ${prefix}/lib/${gtkdir}/${pkg:${gtk}:gtk_binary_version}/engines/*.so
+    ${prefix}/lib/${gtkdir}/${pkg:${gtk}:gtk_binary_version}/theming-engines/*.so
   </binary>
   <binary>
     ${prefix}/lib/${gtkdir}/${pkg:${gtk}:gtk_binary_version}/printbackends/*.so
@@ -75,7 +75,7 @@
 
 <!-- Starting with 2.24, gdk-pixbuf installs into its own directory. -->
   <binary>
-    ${prefix}/lib/gdk-pixbuf-2.0/${pkg:${gtk}:gtk_binary_version}/*.so
+    ${prefix}/lib/gdk-pixbuf-2.0/${pkg:gdk-pixbuf-2.0:gdk_pixbuf_binary_version}/loaders/*.so
   </binary>
 
   <!-- Translation filenames, one for each program or library that you
