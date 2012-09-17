@@ -335,8 +335,11 @@ class Bundler:
 
             def relative_path_map(line):
                 if not os.path.isabs(line):
-                    # FIXME: Try all prefixes here.
-                    return os.path.join(self.project.get_prefix(), "lib", line)
+                    for prefix in prefixes.values():
+                        path = os.path.join(prefix, "lib", line)
+                        if os.path.exists(path):
+                            return path
+                    print "Cannot find a matching prefix for %s" % (line)
                 return line
 
             def prefix_filter(line):
