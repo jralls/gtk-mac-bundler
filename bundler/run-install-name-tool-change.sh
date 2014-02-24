@@ -10,6 +10,8 @@ WRONG_PREFIX=$2
 RIGHT_PREFIX="@executable_path/../$3"
 ACTION=$4
 
+chmod u+w $LIBRARY
+
 if [ "x$ACTION" == "xchange" ]; then
     libs="`otool -L $LIBRARY 2>/dev/null | fgrep compatibility | cut -d\( -f1 | grep $WRONG_PREFIX | sort | uniq`"
     for lib in $libs; do
