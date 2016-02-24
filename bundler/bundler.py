@@ -68,6 +68,12 @@ class Bundler:
         self.copy_path(path)
 
     def create_pango_setup(self):
+        if utils.has_pkgconfig_module("pango") and \
+                not utils.has_pkgconfig_variable("pango", "pango_module_version"):
+            # Newer pango (>= 1.38) no longer has modules, skip this
+            # step in that case.
+            return
+
         # Create a temporary pangorc file just for creating the
         # modules file with the right modules.
         module_version = utils.evaluate_pkgconfig_variables("${pkg:pango:pango_module_version}")

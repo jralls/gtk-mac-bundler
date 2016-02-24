@@ -69,9 +69,11 @@
     ${prefix}/lib/gdk-pixbuf-2.0/${pkg:gdk-pixbuf-2.0:gdk_pixbuf_binary_version}/loaders/*.so
   </binary>
 
+<!-- No longer needed for pango >= 1.38
   <binary>
     ${prefix}/lib/pango/${pkg:pango:pango_module_version}/modules/
   </binary>
+-->
 
   <!-- Translation filenames, one for each program or library that you
        want to copy in to the bundle. The "dest" attribute is
