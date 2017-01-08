@@ -722,15 +722,15 @@ class Project:
         libraries = utils.node_get_elements_by_tag_name(self.root, "library")
         if libraries:
             nodes.extend(libraries)
-            self.have_libraries = True
+            have_libraries = True
         modules = utils.node_get_elements_by_tag_name(self.root, "loadable")
         if modules:
             nodes.extend(modules)
-            self.have_modules = True
+            have_modules = True
         helpers = utils.node_get_elements_by_tag_name(self.root, "helper")
         if helpers:
             nodes.extend(helpers)
-            self.have_helpers = True
+            have_helpers = True
 
         if self.have_binaries and (have_libraries or have_modules or
                                    have_helpers):
