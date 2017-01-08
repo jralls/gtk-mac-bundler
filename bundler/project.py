@@ -28,6 +28,7 @@ class Path(object):
         self.dest = dest
         self.recurse = recurse
         self.bundledir = 'Resources'
+        self.debug = False
 
     @classmethod
     def from_node(cls, node, validate=True):
@@ -47,6 +48,14 @@ class Path(object):
             return Framework(source, recurse)
         if node.tagName == "binary" or node.tagName == "main-binary":
             return Binary(source, dest, recurse)
+        if node.tagName == "loadable":
+            return Module(source, dest, recurse)
+        if node.tagName == "library":
+            return Library(source, dest, recurse)
+        if node.tagName == "helper":
+            return HelperProgram(source, dest, recurse)
+        if node.tagName == "libtool":
+            return Libtool(source, dest, recurse)
         if node.tagName == "translations":
             name = node.getAttribute('name')
             if len(name) == 0:
@@ -96,7 +105,6 @@ class Path(object):
 
     def copy_file(self, project, source, dest):
         try:
-            # print "Copying %s to %s" % (source, dest)
             shutil.copy2(source, dest)
         except EnvironmentError as e:
             if e.errno == errno.ENOENT:
@@ -198,6 +206,18 @@ class Path(object):
             self.copy_target_glob(project, source, dest)
         return dest
 
+    def sign(self, project, target):
+        if "APPLICATION_CERT" not in os.environ:
+            return
+        cert = os.getenv("APPLICATION_CERT")
+        ident = project.get_bundle_id()
+        output = Popen(['codesign', '-s', cert, '-i',
+                        ident, target], stdout=PIPE, stderr=STDOUT)
+        results = output.communicate()[0]
+        if results:
+            raise SystemError("Error! Codesigning %s returned error %s."
+                  % (target, results))
+
 # Used for anything that has a name and value.
 class Variable:
     def __init__(self, node):
@@ -290,27 +310,18 @@ class Binary(Path):
         # Byte compiled scheme and python files don't have rpaths.
         if (target.endswith('.go') or target.endswith('.pyc') or
             target.endswith('.pyo')):
+            print("Warning, byte-compiled file %s submitted to fix_rpaths."
+                  % target)
             return
         cmd = os.path.join(os.path.dirname(__file__),
                            "run-install-name-tool-change.sh")
+        libdir = 'Resources' if project.have_binaries else 'Frameworks'
         for prefix in project.get_meta().prefixes:
             prefix_path = project.get_prefix(prefix)
-            call([cmd, target, prefix_path, self.bundledir, "change"])
+            call([cmd, target, prefix_path, libdir, "change"])
             call([cmd, target, prefix_path, self.bundledir, "id"])
             for fw in frameworks:
                 call([cmd, path, fw.get_name(), fw.get_bundlename(), 'change'])
-
-    def sign(self, project, target):
-        if "APPLICATION_CERT" not in os.environ:
-            return
-        cert = os.getenv("APPLICATION_CERT")
-        ident = project.get_bundle_id()
-        output = Popen(['codesign', '-s', cert, '-i',
-                        ident, target], stdout=PIPE, stderr=STDOUT)
-        results = output.communicate()[0]
-        if results:
-            raise SystemError("Warning! Codesigning %s returned error %s."
-                  % (target, results))
 
     def strip_debugging(self, target):
         if target.endswith(".dylib") or target.endswith(".so"):
@@ -349,6 +360,21 @@ class Framework(Binary):
                 continue
             check_call([cmd, dest, dep.get_name(),
                         dep.get_bundle_name(), 'change'])
+
+class Library(Binary):
+    def __init__(self, source, dest=None, recurse=False):
+        super(Library, self).__init__(source, dest, recurse)
+        self.bundledir = "Frameworks"
+
+class Module(Binary):
+    def __init__(self, source, dest=None, recurse=False):
+        super(Module, self).__init__(source, dest, recurse)
+        self.bundledir = "Plugins"
+
+class HelperProgram(Binary):
+    def __init__(self, source, dest=None, recurse=False):
+        super(HelperProgram, self).__init__(source, dest, recurse)
+        self.bundledir = "Helpers"
 
 class Translation(Path):
     def __init__(self, name, sourcepath, destpath, recurse):
@@ -404,6 +430,20 @@ class GirFile(Path):
             except Exception as err:
                 print('Error in transformation of %s: %s' % (globbed_source, err))
         return typelib_paths
+
+class Libtool(Path):
+    def copy_file(self, project, source, dest):
+        p = re.compile(project.get_prefix())
+        libdir = 'Resources' if project.have_binaries else 'Frameworks'
+        bundledir = os.path.join(project.get_name() + '.app', 'Contents', libdir)
+        with open(source, 'r') as s:
+            lines = s.readlines()
+        if os.path.isdir(dest):
+            path, file = os.path.split(source)
+            dest = os.path.join(dest, file)
+        with open(dest, 'w') as target:
+            for line in lines:
+                target.write(re.sub(p, bundledir, line))
 
 class Data(Path):
     pass
@@ -478,6 +518,7 @@ class Project:
             project_path = os.path.join(os.getcwd(), project_path)
         self.project_path = project_path
         self.root = None
+        self.have_binaries = False
 
         if project_path and os.path.exists(project_path):
             try:
@@ -671,7 +712,31 @@ class Project:
 
     def get_binaries(self):
         binaries = []
+        have_libraries = False
+        have_modules = False
+        have_helpers = False
+
         nodes = utils.node_get_elements_by_tag_name(self.root, "binary")
+        if nodes:
+            self.have_binaries = True
+        libraries = utils.node_get_elements_by_tag_name(self.root, "library")
+        if libraries:
+            nodes.extend(libraries)
+            self.have_libraries = True
+        modules = utils.node_get_elements_by_tag_name(self.root, "loadable")
+        if modules:
+            nodes.extend(modules)
+            self.have_modules = True
+        helpers = utils.node_get_elements_by_tag_name(self.root, "helper")
+        if helpers:
+            nodes.extend(helpers)
+            self.have_helpers = True
+
+        if self.have_binaries and (have_libraries or have_modules or
+                                   have_helpers):
+            raise RuntimeError("Can't mix old-style binary elements with new style elements.")
+        elif not (have_libraries or have_modules or have_helpers):
+            self.have_binaries = True
         for node in nodes:
             binaries.append(Path.from_node(node))
         return binaries
@@ -679,6 +744,7 @@ class Project:
     def get_data(self):
         data = []
         nodes = utils.node_get_elements_by_tag_name(self.root, "data")
+        nodes.extend(utils.node_get_elements_by_tag_name(self.root, "libtool"))
         for node in nodes:
             data.append(Path.from_node(node))
         return data

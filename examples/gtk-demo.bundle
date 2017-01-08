@@ -88,6 +88,39 @@
   </binary>
 -->
 
+<!--
+    If your application uses dopen() or dlopen to add modules then you
+    may need to specify those modules. If you're bundling a scripted
+    language (e.g. Python) application you'll need to specify any
+    compiled Pyton extensions you need. gtk-mac-bundler will examine
+    your main-binary and any other binaries to specify for
+    dependencies and will add them automatically.
+
+    Two layouts of binaries are supported. The original layout
+    duplicates the installation layout in Contents/Resources:
+    executables (except for the main binary, which goes into
+    Contents/MacOS) go into Contents/Resources/bin, libraries and
+    loadable modules go into Contents/Resources/lib, and so on. This
+    doesn't comply with Apple's guidelines for code-signing
+    (https://developer.apple.com/library/content/technotes/tn2206/_index.html#//apple_ref/doc/uid/DTS40007919-CH1-TNTAG201),
+    which require that mach-o executables *not* go into
+    Contents/Resources. Shared libraries are supposed to go into
+    Contents/Frameworks, loadable modules into Contents/Plugins, and
+    executables into Contents/Helpers.
+
+    Which layout gtk-mac-bundler produces is controlled by the
+    elements that you use to specify additional binaries: The default
+    is "original", and for that you specify all of your binaries in
+    <binary> elements. If you have no additional binaries the
+    dependencies will be placed in Contents/Resources/lib. For the new
+    layout three new elements are provided: <library>, <loadable>, and
+    <helper>, for shared libraries (foo.dylib), loadable modules
+    (foo.so), and executables (usually no extension on Unix).
+
+    The two layouts are mutually exclusive. If your bundle file has
+    both binary and any of the other tags gtk-mac-bundler will quit
+    with an error.
+-->
 <!-- GObject-introspection based projects require typelibs for
      connecting the C-based shared libraries with their language
      bindings. These are compiled from GObject-Introspection (.gir)
@@ -157,7 +190,7 @@
        icon names. To be safe, you should use "all". "none" is useful
        if you want just the index.theme file but no icons, mostly
        needed for the "hicolor" base theme.
-  >
+
   <icon-theme icons="auto">
     Tango
   </icon-theme -->

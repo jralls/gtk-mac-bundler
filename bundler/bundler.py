@@ -89,9 +89,10 @@ class Bundler:
         # Create a temporary pangorc file just for creating the
         # modules file with the right modules.
         module_version = utils.evaluate_pkgconfig_variables("${pkg:pango:pango_module_version}")
-        modulespath = self.project.get_bundle_path("Contents/Resources/lib/pango/" +
-                                                   module_version +
-                                                   "/modules/")
+        module_dir = 'Resources' if self.project.have_binaries else 'Plugins'
+        modules_path = os.path.join('Contents', module_dir, 'lib', 'pango',
+                                    module_version, 'modules')
+        modulespath = self.project.get_bundle_path(modules_path)
 
         from distutils.version import StrictVersion as V
         import tempfile
@@ -111,10 +112,9 @@ class Bundler:
         fout = open(os.path.join(path, "pango.modules"), "w")
 
         if V(module_version) < V('1.8.0'):
-            prefix_path  = os.path.join("Contents", "Resources")
+            prefix_path  = os.path.join("Contents", module_dir)
         else:
-            prefix_path = os.path.join("Contents", "Resources", "lib", "pango",
-                                       module_version, "modules/")
+            prefix_path = modules_path
 
         prefix = self.project.get_bundle_path(prefix_path)
 
@@ -130,7 +130,7 @@ class Bundler:
 #for modules (providing the PANGO_LIB_DIR is set to point to the
 #bundle_lib folder).
                 if V(module_version) < V('1.8.0'):
-                    line = "@executable_path/../Resources" + line
+                    line = "@executable_path/../" + module_dir + line
 
             fout.write(line)
             fout.write("\n")
@@ -139,8 +139,6 @@ class Bundler:
         os.unlink(tmp_filename)
 
         # Create the final pangorc file
-        path = self.project.get_bundle_path("Contents/Resources/etc/pango")
-        utils.makedirs(path)
         f = open(os.path.join(path, "pangorc"), "w")
         f.write("[Pango]\n")
 #Pango 2.32 (corresponding to module_version 1.8.0) and later don't
@@ -153,7 +151,8 @@ class Bundler:
         f.close()
 
     def create_gtk_immodules_setup(self):
-        path = self.project.get_bundle_path("Contents/Resources")
+        module_dir = 'Resources' if self.project.have_binaries else 'Plugins'
+        path = self.project.get_bundle_path(os.path.join('Contents', module_dir))
         env_var = "GTK_EXE_PREFIX"
         exe_name = 'gtk-query-immodules-' + self.project.get_gtk_version()
         f = self.run_module_catalog(env_var, path, exe_name)
@@ -163,7 +162,7 @@ class Bundler:
         utils.makedirs(path)
         fout = open(os.path.join(path, "gtk.immodules"), "w")
 
-        prefix = "\"" + self.project.get_bundle_path("Contents/Resources")
+        prefix = "\"" + self.project.get_bundle_path("Contents", module_dir)
 
         for line in f:
             line = line.strip()
@@ -173,43 +172,31 @@ class Bundler:
             # Replace the hardcoded bundle path with @executable_path...
             if line.startswith(prefix):
                 line = line[len(prefix):]
-                line = "\"@executable_path/../Resources" + line
+                line = "\"@executable_path/../%s/%s" % (module_dir, line)
             fout.write(line)
             fout.write("\n")
         fout.close()
 
     def create_gdk_pixbuf_loaders_setup(self):
-        modulespath = ""
-        cachepath = ""
+        module_dir = 'Resources' if self.project.have_binaries else 'Plugins'
+        pixbuf_ver = ''
         if os.path.exists(os.path.join(self.project.get_prefix(), "lib",
                                        "gdk-pixbuf-2.0")):
-
-            modulespath = self.project.get_bundle_path("Contents/Resources/lib/",
-                                                     "gdk-pixbuf-2.0",
-                                                     "${pkg:gdk-pixbuf-2.0:gdk_pixbuf_binary_version}",
-                                                     "loaders")
-            cachepath = self.project.get_bundle_path("Contents/Resources/lib/",
-                                                     "gdk-pixbuf-2.0",
-                                                     "${pkg:gdk-pixbuf-2.0:gdk_pixbuf_binary_version}",
-                                                     "loaders.cache")
+            pixbuf_ver = 'gdk-pixbuf-2.0'
         elif os.path.exists(os.path.join(self.project.get_prefix(), "lib",
                                        "gdk-pixbuf-3.0")):
-            modulespath = self.project.get_bundle_path("Contents/Resources/lib/",
-                                                     "gdk-pixbuf-3.0",
-                                                     "${pkg:gdk-pixbuf-3.0:gdk_pixbuf_binary_version}",
-                                                     "loaders")
-            cachepath = self.project.get_bundle_path("Contents/Resources/lib/",
-                                                     "gdk-pixbuf-3.0",
-                                                     "${pkg:gdk-pixbuf-3.0:gdk_pixbuf_binary_version}",
-                                                     "loaders.cache")
+            pixbuf_ver = 'gdk-pixbuf-3.0'
         else:
-            modulespath = self.project.get_bundle_path("Contents/Resources/lib/",
-                                                       self.project.get_gtk_dir(),
-                                                       "${pkg:" + self.meta.gtk + ":gtk_binary_version}",
-                                                       "loaders")
-            cachepath = self.project.get_bundle_path("Contents/Resources/etc/",
-                                                     self.project.get_gtk_dir(),
-                                                     "gdk-pixbuf.loaders")
+            raise RuntimeError("No supported gdk-pixbuf modules directory found.")
+
+        pixbuf_bin_ver = '${pkg:' + pixbuf_ver + ':gdk_pixbuf_binary_version}'
+        module_path = os.path.join('Contents', module_dir, 'lib', pixbuf_ver,
+                                   pixbuf_bin_ver)
+        cache_path = os.path.join('Contents', 'Resources', 'lib', pixbuf_ver,
+                                   pixbuf_bin_ver)
+
+        modulespath = self.project.get_bundle_path(module_path, 'loaders')
+        cachepath = self.project.get_bundle_path(cache_path, "loaders.cache")
 
         modulespath = utils.evaluate_pkgconfig_variables (modulespath)
         cachepath = utils.evaluate_pkgconfig_variables (cachepath)
@@ -221,7 +208,7 @@ class Bundler:
         utils.makedirs(os.path.dirname(cachepath))
         fout = open(cachepath, "w")
 
-        prefix = "\"" + self.project.get_bundle_path("Contents/Resources")
+        prefix = "\"" + self.project.get_bundle_path("Contents", module_dir)
         for line in f:
             line = line.strip()
             if line.startswith("#"):
@@ -230,7 +217,7 @@ class Bundler:
             # Replace the hardcoded bundle path with @executable_path...
             if line.startswith(prefix):
                 line = line[len(prefix):]
-                line = "\"@executable_path/../Resources" + line
+                line = "\"@executable_path/../%s/%s" % (module_dir, line)
             fout.write(line)
             fout.write("\n")
         fout.close()
@@ -257,8 +244,7 @@ class Bundler:
                 copied_paths.remove(path)
             self.copied_binaries.extend(copied_paths)
 
-    # Lists all the binaries copied in so far. Used in the library
-    # dependency resolution and icon theme lookup.
+
     def list_copied_binaries(self):
         def filter_path(path):
             if os.path.islink(path):
@@ -368,7 +354,10 @@ class Bundler:
                 # create a Path object.
                 for (key, value) in list(prefixes.items()):
                     if library.startswith(value):
-                        path = Binary("${prefix:" + key + "}" + library[len(value):])
+                        if (self.project.have_binaries):
+                            path = Binary("${prefix:" + key + "}" + library[len(value):])
+                        else:
+                            path = Library("${prefix:" + key + "}" + library[len(value):])
                         new_libraries.append(path)
 
             n_paths = len(paths)
