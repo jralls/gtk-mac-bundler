@@ -66,10 +66,11 @@ class Bundler:
         path = Path(self.project.get_plist_path(),
                     self.project.get_bundle_path("Contents/Info.plist"))
         path.copy_target(self.project)
+
     def run_module_catalog(self, env_var, env_val, exe_name):
         exepath = self.project.evaluate_path('${prefix}/bin/%s' % exe_name)
         temppath = self.project.get_bundle_path('Contents/MacOS/', exe_name)
-        path = Binary(exepath, temppath)
+        path = Binary(exepath, temppath) if self.project.have_binaries else MainProgram(exepath, temppath)
         path.copy_target(self.project)
 
         local_env = os.environ.copy()
@@ -77,6 +78,8 @@ class Bundler:
         p = Popen(temppath, env=local_env, stdout=PIPE)
         f = p.communicate()[0].splitlines()
         os.remove(temppath)
+        if not f:
+            raise RuntimeError("%s produced no output." % temppath)
         return f
 
     def create_pango_setup(self):
@@ -89,10 +92,11 @@ class Bundler:
         # Create a temporary pangorc file just for creating the
         # modules file with the right modules.
         module_version = utils.evaluate_pkgconfig_variables("${pkg:pango:pango_module_version}")
-        module_dir = 'Resources' if self.project.have_binaries else 'Plugins'
-        modules_path = os.path.join('Contents', module_dir, 'lib', 'pango',
-                                    module_version, 'modules')
-        modulespath = self.project.get_bundle_path(modules_path)
+        modulespath = self.project.get_bundle_path('Contents', 'Plugins')
+        if self.project.have_binaries:
+            modulespath = self.project.get_bundle_path('Contents', 'Resources',
+                                                       'lib', 'pango',
+                                                       module_version, 'modules')
 
         from distutils.version import StrictVersion as V
         import tempfile
@@ -196,6 +200,8 @@ class Bundler:
                                    pixbuf_bin_ver)
 
         modulespath = self.project.get_bundle_path(module_path, 'loaders')
+        if not self.project.have_binaries:
+            modulespath = self.project.get_bundle_path('Contents', 'Plugins')
         cachepath = self.project.get_bundle_path(cache_path, "loaders.cache")
 
         modulespath = utils.evaluate_pkgconfig_variables (modulespath)
@@ -211,6 +217,7 @@ class Bundler:
         prefix = "\"" + self.project.get_bundle_path("Contents", module_dir)
         for line in f:
             line = line.strip()
+            print("Pixbuf Loader %s" % line)
             if line.startswith("#"):
                 continue
 

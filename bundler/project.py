@@ -46,7 +46,9 @@ class Path(object):
 
         if node.tagName == "framework":
             return Framework(source, recurse)
-        if node.tagName == "binary" or node.tagName == "main-binary":
+        if  node.tagName == "main-binary":
+            return MainProgram(source, dest, recurse)
+        if node.tagName == "binary":
             return Binary(source, dest, recurse)
         if node.tagName == "loadable":
             return Module(source, dest, recurse)
@@ -333,6 +335,46 @@ class Binary(Path):
             os.system("strip -ur " + target + " 2>/dev/null")
             os.chmod(target, 0o555)
 
+class FlatBinary(Binary):
+    def copy_target_glob_recursive(self, project, source, dest):
+        source_parent, source_tail = os.path.split(source)
+        for root, dirs, files in os.walk(source_parent):
+            glob_list = glob.glob(os.path.join(root, source_tail))
+            if not glob_list:
+                continue
+            for globbed_source in glob_list:
+                self.copy_file(project, globbed_source, dest)
+
+    def copy_target_recursive(self, project, source, dest):
+        for root, dirs, files in os.walk(source):
+            if not files:
+                continue
+            for file in files:
+                self.copy_file(project, os.path.join(root, file), dest)
+
+    def compute_destination(self, project):
+        path = project.get_bundle_path('Contents', self.bundledir)
+        utils.makedirs(path)
+        return path
+
+    def fix_rpaths(self, project, target, frameworks = []):
+        if not project.get_meta().run_install_name_tool:
+            return
+        bundle_path = '@executable_path/../Frameworks'
+        otool_L = ['otool', '-L', target]
+        fname_re = re.compile('^\s*(?!/System|/usr)([-_./A-Za-z0-9 ]+) \(compatibility.*')
+        p = Popen(otool_L, stdout=PIPE)
+        lines = p.communicate()[0].splitlines()
+        for line in lines[1:]:
+            m = fname_re.match(line)
+            if m:
+                oldname = m.group(1)
+                path, name = os.path.split(oldname)
+                new_name=os.path.join(bundle_path, name)
+                cmd = ['install_name_tool', '-change', oldname, new_name, target]
+                call(cmd)
+        new_id = os.path.join(bundle_path, os.path.split(target)[1])
+        call(['install_name_tool', '-id', new_id, target])
 
 class Framework(Binary):
     def __init__(self, source, recurse):
@@ -351,7 +393,7 @@ class Framework(Binary):
     def fix_rpaths(self, project, frameworks):
         if not project.get_meta().run_install_name_tool:
             return
-        dest = self.compute_desitnation(project)
+        dest = self.compute_destination(project)
         cmd = os.path.join(os.path.dirname(__file__),
                            "run-install-name-tool-change.sh")
         check_all([cmd, dest, self.get_name(), self.bundledir, 'id'])
@@ -361,20 +403,28 @@ class Framework(Binary):
             check_call([cmd, dest, dep.get_name(),
                         dep.get_bundle_name(), 'change'])
 
-class Library(Binary):
+class Library(FlatBinary):
     def __init__(self, source, dest=None, recurse=False):
         super(Library, self).__init__(source, dest, recurse)
         self.bundledir = "Frameworks"
 
-class Module(Binary):
+class Module(FlatBinary):
     def __init__(self, source, dest=None, recurse=False):
         super(Module, self).__init__(source, dest, recurse)
         self.bundledir = "Plugins"
 
-class HelperProgram(Binary):
+class HelperProgram(FlatBinary):
     def __init__(self, source, dest=None, recurse=False):
         super(HelperProgram, self).__init__(source, dest, recurse)
         self.bundledir = "Helpers"
+
+class MainProgram(FlatBinary):
+    def __init__(self, source, dest=None, recurse=False):
+        super(MainProgram, self).__init__(source, dest, recurse)
+        self.bundledir = "MacOS"
+
+    def compute_destination(self, project):
+        return project.evaluate_path(self.dest)
 
 class Translation(Path):
     def __init__(self, name, sourcepath, destpath, recurse):
@@ -433,7 +483,14 @@ class GirFile(Path):
 
 class Libtool(Path):
     def copy_file(self, project, source, dest):
-        p = re.compile(project.get_prefix())
+        p = None
+        if project.have_binaries:
+            p = re.compile(project.get_prefix())
+        else:
+            sourcepath = project.evaluate_path(source)
+            path, file = os.path.split(sourcepath)
+            p = re.compile(path)
+
         libdir = 'Resources' if project.have_binaries else 'Frameworks'
         bundledir = os.path.join(project.get_name() + '.app', 'Contents', libdir)
         with open(source, 'r') as s:
@@ -698,7 +755,10 @@ class Project:
         node = utils.node_get_element_by_tag_name(self.root, "main-binary")
         if not node:
             raise Exception("The file has no <main-binary> tag")
-
+        # The main-binary node-name will make a FlatBinary, not what we want
+        # if we're not making a new-layout bundle.
+        if self.have_binaries:
+            node.tag_name = 'binary'
         binary = Path.from_node(node)
 
         launcher = self.get_launcher_script()
