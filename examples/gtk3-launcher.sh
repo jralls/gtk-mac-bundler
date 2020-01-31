@@ -41,7 +41,7 @@ fi
 APP=$name
 I18NDIR="$bundle_data/locale"
 # Set the locale-related variables appropriately:
-unset LANG LC_MESSAGES LC_MONETARY LC_COLLATE
+unset LANG LC_MESSAGES LC_MONETARY LC_COLLATE  # Q: why unset LC_MESSAGES as it is used just after?
 
 # Has a language ordering been set?
 # If so, set LC_MESSAGES and LANG accordingly; otherwise skip it.
@@ -63,7 +63,7 @@ if test "$APPLELANGUAGES"; then
 	    break
 	fi
 	#OK, now test for just the first two letters:
-        if test -f "$I18NDIR/${L:0:2}/LC_MESSAGES/$APP.mo"; then
+    if test -f "$I18NDIR/${L:0:2}/LC_MESSAGES/$APP.mo"; then
 	    export LANG=${L:0:2}
 	    break
 	fi
@@ -78,9 +78,9 @@ unset APPLELANGUAGES L
 
 # If we didn't get a language from the language list, try the Collation preference, in case it's the only setting that exists.
 APPLECOLLATION=`defaults read .GlobalPreferences AppleCollationOrder`
-if test -z ${LANG} -a -n $APPLECOLLATION; then
+if [ -z ${LANG} ] && [ ! -z $APPLECOLLATION ]; then
     if test -f "$I18NDIR/${APPLECOLLATION:0:2}/LC_MESSAGES/$APP.mo"; then
-	export LANG=${APPLECOLLATION:0:2}
+	    export LANG=${APPLECOLLATION:0:2}
     fi
 fi
 if test ! -z $APPLECOLLATION; then
@@ -96,7 +96,7 @@ if test -f "$I18NDIR/${APPLELOCALE:0:5}/LC_MESSAGES/$APP.mo"; then
         export LANG="${APPLELOCALE:0:5}"
     fi
 
-elif test -z $LANG -a -f "$I18NDIR/${APPLELOCALE:0:2}/LC_MESSAGES/$APP.mo"; then
+elif [ -z $LANG ] && [ -f "$I18NDIR/${APPLELOCALE:0:2}/LC_MESSAGES/$APP.mo" ]; then
     export LANG="${APPLELOCALE:0:2}"
 fi
 
@@ -104,45 +104,46 @@ fi
 #5-character locale to avoid the "Locale not supported by C library"
 #warning from Gtk -- even though Gtk will translate with a
 #two-character code.
-if test -n $LANG; then 
+if test ! -z $LANG; then 
 #If the language code matches the applelocale, then that's the message
 #locale; otherwise, if it's longer than two characters, then it's
 #probably a good message locale and we'll go with it.
     if test $LANG == ${APPLELOCALE:0:5} -o $LANG != ${LANG:0:2}; then
-	export LC_MESSAGES=$LANG
+		export LC_MESSAGES=$LANG
 #Next try if the Applelocale is longer than 2 chars and the language
 #bit matches $LANG
     elif test $LANG == ${APPLELOCALE:0:2} -a $APPLELOCALE > ${APPLELOCALE:0:2}; then
-	export LC_MESSAGES=${APPLELOCALE:0:5}
+		export LC_MESSAGES=${APPLELOCALE:0:5}
 #Fail. Get a list of the locales in $PREFIX/share/locale that match
 #our two letter language code and pick the first one, special casing
 #english to set en_US
     elif test $LANG == "en"; then
-	export LC_MESSAGES="en_US"
+		export LC_MESSAGES="en_US"
     else
-	LOC=`find $PREFIX/share/locale -name $LANG???`
-	for L in $LOC; do 
-	    export LC_MESSAGES=$L
-	done
+		LOC=`find $I18NDIR -name $LANG???`
+		for L in $LOC; do 
+			export LC_MESSAGES=$L
+		done
     fi
 else
 #All efforts have failed, so default to US english
     export LANG="en_US"
     export LC_MESSAGES="en_US"
 fi
+
 CURRENCY=`echo $APPLELOCALE |  sed -En 's/.*currency=([[:alpha:]]+).*/\1/p'`
 if test "x$CURRENCY" != "x"; then 
 #The user has set a special currency. Gtk doesn't install LC_MONETARY files, but Apple does in /usr/share/locale, so we're going to look there for a locale to set LC_CURRENCY to.
     if test -f /usr/local/share/$LC_MESSAGES/LC_MONETARY; then
-	if test -a `cat /usr/local/share/$LC_MESSAGES/LC_MONETARY` == $CURRENCY; then
-	    export LC_MONETARY=$LC_MESSAGES
-	fi
+		if test `cat /usr/local/share/$LC_MESSAGES/LC_MONETARY` == $CURRENCY; then
+			export LC_MONETARY=$LC_MESSAGES
+		fi
     fi
     if test -z "$LC_MONETARY"; then 
-	FILES=`find /usr/share/locale -name LC_MONETARY -exec grep -H $CURRENCY {} \;`
-	if test -n "$FILES"; then 
-	    export LC_MONETARY=`echo $FILES | sed -En 's%/usr/share/locale/([[:alpha:]_]+)/LC_MONETARY.*%\1%p'`
-	fi
+		FILES=`find /usr/share/locale -name LC_MONETARY -exec grep -H $CURRENCY {} \;`
+		if test ! -z "$FILES"; then 
+			export LC_MONETARY=`echo $FILES | sed -En 's%/usr/share/locale/([[:alpha:]_]+)/LC_MONETARY.*%\1%p'`
+		fi
     fi
 fi
 #No currency value means that the AppleLocale governs:
@@ -161,7 +162,7 @@ fi
 # Extra arguments can be added in environment.sh.
 EXTRA_ARGS=
 if test -f "$bundle_res/environment.sh"; then
-  source "$bundle_res/environment.sh"
+    source "$bundle_res/environment.sh"
 fi
 
 # Strip out the argument added by the OS.
