@@ -18,7 +18,7 @@ class Bundler(object):
         self.project_dir = project.get_project_dir()
 
         plist_path = self.project.get_plist_path()
-        self.plist = plistlib.readPlist(plist_path)
+        self.plist = plistlib.load(open(plist_path, "rb"))
 
         # List of paths that should be recursively searched for
         # binaries that are used to find library dependencies.

@@ -510,7 +510,7 @@ class Project(object):
 
         plist_path = self.get_plist_path()
         try:
-            plist = plistlib.readPlist(plist_path)
+            plist = plistlib.load(open(plist_path, "rb"))
         except EnvironmentError as e:
             if e.errno == errno.ENOENT:
                 print("Info.plist file not found: " + plist_path)
