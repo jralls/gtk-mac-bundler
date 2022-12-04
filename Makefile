@@ -2,7 +2,8 @@ PACKAGE = gtk-mac-bundler
 VERSION = 0.7.4
 OLD_VERSION = 0.7.3
 
-bindir=$(HOME)/.local/bin
+DEVROOT?="$(HOME)"
+bindir=$(DEVROOT)/.new_local/bin
 
 all:
 	@echo 'Run "make install" to install.'
