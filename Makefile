@@ -2,8 +2,20 @@ PACKAGE = gtk-mac-bundler
 VERSION = 0.7.4
 OLD_VERSION = 0.7.3
 
-DEVROOT?="$(HOME)"
-bindir=$(DEVROOT)/.new_local/bin
+# Search for JHBUILD on PATH
+bindir=$(shell dirname "`which jhbuild`")
+ifeq ($(bindir),.)
+# Search for MacPorts on PATH
+bindir=$(shell dirname "`which port`")
+endif
+ifeq ($(bindir),.)
+# Search for Brew on PATH
+bindir=$(shell dirname "`which brew`")
+endif
+ifeq ($(bindir),.)
+# Set default path
+bindir=$(HOME)/.local/bin
+endif
 
 all:
 	@echo 'Run "make install" to install.'
