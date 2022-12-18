@@ -1,11 +1,11 @@
-import sys, os
+import sys
 
 from .project import *
 from .bundler import *
 
 def main(argv):
     if len(argv) != 1:
-        print("Usage: %s <bundle descriptopn file>" % (sys.argv[0]))
+        print("Usage: %s <bundle descriptopn file>" % (argv[0]))
         sys.exit(2)
 
     if not os.path.exists(argv[0]):
@@ -18,3 +18,6 @@ def main(argv):
     bundler.run()
     #except Exception as err:
      #   print("Bundler encountered an error %s" % str(err))
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
