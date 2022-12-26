@@ -706,12 +706,21 @@ class Project(object):
         return data
 
 if __name__ == '__main__':
-    project = Project(os.path.join(os.getcwd(), 'giggle.bundle'))
+    if len(sys.argv) != 2:
+        print("Usage: %s <bundle descriptopn file>" % (sys.argv[0]))
+        sys.exit(2)
+
+    if not os.path.exists(sys.argv[1]):
+        print("File %s does not exist" % (sys.argv[1]))
+        sys.exit(2)
+
+    project = Project(os.path.join(os.getcwd(), sys.argv[1]))
 
     print("General:")
     print("  Project path: %s" % (project.get_project_path()))
     print("  Plist path: %s" % (project.get_plist_path()))
-    print("  App name: %s" % (project.name))
+    print("  App bundle name: %s" % (project.bundle_name))
+    print("  App main name: %s" % (project.name))
     print("  Destination: %s" % (project.get_meta().dest))
     print("  Overwrite: %s" % (str(project.get_meta().overwrite)))
 
@@ -724,7 +733,7 @@ if __name__ == '__main__':
 
     print("Frameworks:")
     for framework in project.get_frameworks():
-        print(" ", framework)
+        print(" ", framework.source)
 
     print("Main binary:")
     binary = project.get_main_binary()
