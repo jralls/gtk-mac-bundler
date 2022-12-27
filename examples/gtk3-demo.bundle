@@ -48,7 +48,7 @@
        this bundle file is located. The application name and bundle
        identifier are taken from the plist file.
   -->
-  <plist>${project}/Info-gtk-demo.plist</plist>
+  <plist>${project}/Info-gtk3-demo.plist</plist>
 
   <main-binary>${prefix}/bin/gtk3-demo</main-binary>
 
@@ -79,14 +79,17 @@
   </binary>
 -->
 
+  <gir>
+    ${prefix}/share/gir-1.0/*.gir
+  </gir>
+
   <!-- Translation filenames, one for each program or library that you
        want to copy in to the bundle. The "dest" attribute is
        optional, as usual. Bundler will find all translations of that
-       library/program under the indicated directory and copy them.-->
-  <translations  name="gtk30">
+       library/program under the indicated directory and copy them. -->
+  <translations name="gtk30">
     ${prefix}/share/locale
   </translations>
-
 
   <!-- Data to copy in, usually Glade/UI files, images, sounds files
        etc. The destination inside the bundle can be specified if the
@@ -108,12 +111,19 @@
     ${prefix}/share/icons
   </data>
 
+  <!--data dest="${bundle}/Contents/Resources/etc/gtk-2.0/gtkrc">
+    ${project}/gtkrc
+  </data -->
+
   <!-- Copy icons. Note that the .icns file is an Apple format which
        contains up to 4 sizes of icon. You can use
        /Developer/Applications/Utilities/Icon Composer.app to import
-       artwork and create the file. >
+       artwork and create the file. -->
+  <icon-theme icons="auto">
+    Adwaita
+  </icon-theme>
   <data dest="${bundle}/Contents/Resources">
-    ${project}/Giggle.icns
-  </data -->
+    ${project}/GTK3-Demo.icns
+  </data>
 
   </app-bundle>
