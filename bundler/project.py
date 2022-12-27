@@ -707,7 +707,7 @@ class Project(object):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print("Usage: %s <bundle descriptopn file>" % (sys.argv[0]))
+        print("Usage: %s <bundle description file>" % (sys.argv[0]))
         sys.exit(2)
 
     if not os.path.exists(sys.argv[1]):

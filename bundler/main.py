@@ -5,7 +5,7 @@ from .bundler import *
 
 def main(argv):
     if len(argv) != 1:
-        print("Usage: %s <bundle descriptopn file>" % (argv[0]))
+        print("Usage: main.py <bundle description file>")
         sys.exit(2)
 
     if not os.path.exists(argv[0]):
